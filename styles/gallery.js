@@ -89,7 +89,7 @@
     
     let html = `
       <button class="tag-item ${state.currentTag === 'all' ? 'active' : ''}" data-tag="all">
-        <span class="tag-name">📦 全部风格</span>
+        📦 全部
         <span class="tag-count">${total}</span>
       </button>
     `;
@@ -97,7 +97,7 @@
     tags.forEach(([tag, count]) => {
       html += `
         <button class="tag-item ${state.currentTag === tag ? 'active' : ''}" data-tag="${tag}">
-          <span class="tag-name">#${tag}</span>
+          #${tag}
           <span class="tag-count">${count}</span>
         </button>
       `;
