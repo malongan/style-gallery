@@ -10,7 +10,7 @@
   --border-color: #d1d5db;
   --accent-color: #3b82f6;
   --accent-hover: #2563eb;
-  --tag-bg: #e5e7eb;
+  --tag-bg: #f3f4f6;
   --tag-color: #374151;
   --tag-active-bg: #3b82f6;
   --tag-active-color: #ffffff;
@@ -178,7 +178,7 @@ body {
 }
 
 .sidebar-header {
-  padding: 12px 14px;
+  padding: 16px 16px 12px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
@@ -194,7 +194,7 @@ body {
 
 /* 标签列表 - 可滚动 */
 .tag-list {
-  padding: 10px;
+  padding: 12px;
   overflow-y: auto;
   flex: 1;
   display: flex;
@@ -301,7 +301,7 @@ body {
 
 /* ==================== 风格卡片网格 - 瀑布流布局 ==================== */
 .gallery-grid {
-  columns: 4 280px;
+  columns: 5 220px;
   column-gap: 12px;
 }
 
@@ -335,11 +335,27 @@ body {
   padding: 10px 12px;
 }
 
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.card-number {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
 .card-title {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 底部操作栏 */
@@ -597,9 +613,15 @@ body {
 }
 
 /* ==================== 响应式 ==================== */
+@media (max-width: 1600px) {
+  .gallery-grid {
+    columns: 4 200px;
+  }
+}
+
 @media (max-width: 1200px) {
   .gallery-grid {
-    columns: 3 200px;
+    columns: 3 180px;
   }
 }
 
