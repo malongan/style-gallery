@@ -299,11 +299,10 @@ body {
   font-weight: 600;
 }
 
-/* ==================== 风格卡片网格 ==================== */
+/* ==================== 风格卡片网格 - 瀑布流布局 ==================== */
 .gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
+  columns: 4 280px;
+  column-gap: 12px;
 }
 
 .style-card {
@@ -314,6 +313,8 @@ body {
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: var(--shadow);
   cursor: pointer;
+  break-inside: avoid;
+  margin-bottom: 12px;
 }
 
 .style-card:hover {
@@ -598,8 +599,7 @@ body {
 /* ==================== 响应式 ==================== */
 @media (max-width: 1200px) {
   .gallery-grid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 10px;
+    columns: 3 200px;
   }
 }
 
@@ -622,6 +622,10 @@ body {
   .tag-list {
     flex-direction: row;
     flex-wrap: wrap;
+  }
+  
+  .gallery-grid {
+    columns: 2 180px;
   }
   
   /* 平板：详情页改为上下布局 */
@@ -655,8 +659,12 @@ body {
   }
   
   .gallery-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
+    columns: 2 150px;
+    column-gap: 8px;
+  }
+  
+  .style-card {
+    margin-bottom: 8px;
   }
   
   .card-footer {
@@ -680,7 +688,7 @@ body {
   }
   
   .gallery-grid {
-    grid-template-columns: repeat(2, 1fr);
+    columns: 1;
   }
   
   .lightbox-image-wrap {
