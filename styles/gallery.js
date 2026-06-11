@@ -97,7 +97,7 @@
     tags.forEach(([tag, count]) => {
       html += `
         <button class="tag-item ${state.currentTag === tag ? 'active' : ''}" data-tag="${tag}">
-          #${tag}
+          ${tag}
           <span class="tag-count">${count}</span>
         </button>
       `;
