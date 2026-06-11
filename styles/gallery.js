@@ -1,6 +1,6 @@
 /**
- * Gallery 功能脚本
- * 包含：搜索过滤、标签筛选、收藏、Lightbox、深色模式
+ * Gallery 功能脚本 v2
+ * 包含：搜索过滤、标签筛选、收藏、Lightbox信息卡片、深色模式
  */
 
 (function() {
@@ -16,17 +16,7 @@
   };
 
   // ========== DOM 元素 ==========
-  const elements = {
-    searchInput: null,
-    tagButtons: null,
-    filterFavorites: null,
-    themeToggle: null,
-    galleryGrid: null,
-    styleCards: null,
-    lightbox: null,
-    lightboxImg: null,
-    lightboxClose: null
-  };
+  let elements = {};
 
   // ========== 初始化 ==========
   function init() {
@@ -34,19 +24,21 @@
     loadTheme();
     bindEvents();
     extractTags();
-    renderTags();
+    renderSidebarTags();
+    renderMobileTags();
   }
 
   function cacheElements() {
-    elements.searchInput = document.getElementById('searchInput');
-    elements.tagButtons = document.querySelectorAll('.tag-btn');
-    elements.filterFavorites = document.getElementById('filterFavorites');
-    elements.themeToggle = document.getElementById('themeToggle');
-    elements.galleryGrid = document.querySelector('.gallery-grid');
-    elements.styleCards = document.querySelectorAll('.style-card');
-    elements.lightbox = document.getElementById('lightbox');
-    elements.lightboxImg = document.getElementById('lightboxImg');
-    elements.lightboxClose = document.getElementById('lightboxClose');
+    elements = {
+      searchInput: document.getElementById('searchInput'),
+      themeToggle: document.getElementById('themeToggle'),
+      filterFavorites: document.getElementById('filterFavorites'),
+      galleryGrid: document.querySelector('.gallery-grid'),
+      styleCards: document.querySelectorAll('.style-card'),
+      lightbox: document.getElementById('lightbox'),
+      lightboxCard: document.querySelector('.lightbox-card'),
+      lightboxClose: document.getElementById('lightboxClose')
+    };
   }
 
   // ========== 主题切换 ==========
@@ -86,7 +78,41 @@
     window.galleryTags = tagsMap;
   }
 
-  function renderTags() {
+  function renderSidebarTags() {
+    const sidebar = document.querySelector('.sidebar .tag-list');
+    if (!sidebar) return;
+
+    const tags = Object.entries(window.galleryTags || {});
+    tags.sort((a, b) => b[1] - a[1]);
+
+    const total = tags.reduce((sum, t) => sum + t[1], 0);
+    
+    let html = `
+      <button class="tag-item ${state.currentTag === 'all' ? 'active' : ''}" data-tag="all">
+        <span class="tag-name">📦 全部风格</span>
+        <span class="tag-count">${total}</span>
+      </button>
+    `;
+
+    tags.forEach(([tag, count]) => {
+      html += `
+        <button class="tag-item ${state.currentTag === tag ? 'active' : ''}" data-tag="${tag}">
+          <span class="tag-name">#${tag}</span>
+          <span class="tag-count">${count}</span>
+        </button>
+      `;
+    });
+
+    sidebar.innerHTML = html;
+    
+    // 绑定标签按钮事件
+    sidebar.querySelectorAll('.tag-item').forEach(btn => {
+      btn.addEventListener('click', handleTagClick);
+    });
+  }
+
+  function renderMobileTags() {
+    // 移动端标签栏（如果存在）
     const tagsBar = document.querySelector('.tags-bar');
     if (!tagsBar) return;
 
@@ -94,25 +120,22 @@
     tags.sort((a, b) => b[1] - a[1]);
 
     let html = `
-      <button class="tag-btn ${state.currentTag === 'all' ? 'active' : ''}" data-tag="all">
-        全部
-        <span class="tag-count">${tags.reduce((sum, t) => sum + t[1], 0)}</span>
+      <button class="tag-item ${state.currentTag === 'all' ? 'active' : ''}" data-tag="all">
+        全部 <span class="tag-count">${tags.reduce((sum, t) => sum + t[1], 0)}</span>
       </button>
     `;
 
     tags.forEach(([tag, count]) => {
       html += `
-        <button class="tag-btn ${state.currentTag === tag ? 'active' : ''}" data-tag="${tag}">
-          ${tag}
-          <span class="tag-count">${count}</span>
+        <button class="tag-item ${state.currentTag === tag ? 'active' : ''}" data-tag="${tag}">
+          #${tag} <span class="tag-count">${count}</span>
         </button>
       `;
     });
 
     tagsBar.innerHTML = html;
     
-    // 重新绑定标签按钮事件
-    document.querySelectorAll('.tag-btn').forEach(btn => {
+    tagsBar.querySelectorAll('.tag-item').forEach(btn => {
       btn.addEventListener('click', handleTagClick);
     });
   }
@@ -124,32 +147,31 @@
       elements.searchInput.addEventListener('input', debounce(handleSearch, 300));
     }
 
-    // 标签筛选
-    elements.tagButtons.forEach(btn => {
-      btn.addEventListener('click', handleTagClick);
-    });
+    // 主题切换
+    if (elements.themeToggle) {
+      elements.themeToggle.addEventListener('click', toggleTheme);
+    }
 
     // 收藏筛选
     if (elements.filterFavorites) {
       elements.filterFavorites.addEventListener('click', handleFavoriteFilter);
     }
 
-    // 主题切换
-    if (elements.themeToggle) {
-      elements.themeToggle.addEventListener('click', toggleTheme);
-    }
-
-    // 图片点击放大
+    // 图片点击 - 打开信息卡片
     elements.styleCards.forEach(card => {
       const img = card.querySelector('.card-image');
       if (img) {
-        img.addEventListener('click', () => openLightbox(img.src));
+        img.addEventListener('click', () => openLightbox(card));
       }
     });
 
     // Lightbox 关闭
     if (elements.lightbox) {
-      elements.lightbox.addEventListener('click', closeLightbox);
+      elements.lightbox.addEventListener('click', (e) => {
+        if (e.target === elements.lightbox || e.target.classList.contains('lightbox-card')) {
+          closeLightbox();
+        }
+      });
     }
     if (elements.lightboxClose) {
       elements.lightboxClose.addEventListener('click', (e) => {
@@ -173,7 +195,6 @@
           e.stopPropagation();
           handleFavoriteToggle(card.dataset.id, favBtn);
         });
-        // 初始化收藏按钮状态
         updateFavoriteButton(card.dataset.id, favBtn);
       }
     });
@@ -188,9 +209,9 @@
     const btn = e.currentTarget;
     state.currentTag = btn.dataset.tag;
     
-    // 更新按钮状态
-    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    // 更新所有标签按钮状态
+    document.querySelectorAll('.tag-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll(`.tag-item[data-tag="${state.currentTag}"]`).forEach(b => b.classList.add('active'));
     
     filterCards();
   }
@@ -205,23 +226,23 @@
     const index = state.favorites.indexOf(cardId);
     if (index > -1) {
       state.favorites.splice(index, 1);
+      btn.classList.remove('active');
+      btn.textContent = '收藏';
     } else {
       state.favorites.push(cardId);
+      btn.classList.add('active');
+      btn.textContent = '已收藏';
     }
     localStorage.setItem('galleryFavorites', JSON.stringify(state.favorites));
-    updateFavoriteButton(cardId, btn);
-    if (state.showFavoritesOnly) {
-      filterCards();
-    }
   }
 
   function updateFavoriteButton(cardId, btn) {
     if (state.favorites.includes(cardId)) {
       btn.classList.add('active');
-      btn.textContent = '❤️';
+      btn.textContent = '已收藏';
     } else {
       btn.classList.remove('active');
-      btn.textContent = '🤍';
+      btn.textContent = '收藏';
     }
   }
 
@@ -231,6 +252,7 @@
       const cardId = card.dataset.id;
       const title = card.querySelector('.card-title')?.textContent.toLowerCase() || '';
       const cardTags = Array.from(card.querySelectorAll('.card-tag')).map(t => t.textContent.trim());
+      const triggers = card.querySelector('.card-triggers')?.textContent.toLowerCase() || '';
       
       let visible = true;
 
@@ -243,7 +265,8 @@
       if (state.searchQuery) {
         visible = visible && (
           title.includes(state.searchQuery) ||
-          cardTags.some(tag => tag.toLowerCase().includes(state.searchQuery))
+          cardTags.some(tag => tag.toLowerCase().includes(state.searchQuery)) ||
+          triggers.includes(state.searchQuery)
         );
       }
 
@@ -255,6 +278,9 @@
       card.classList.toggle('hidden', !visible);
     });
 
+    // 更新计数
+    updateCounts();
+    
     // 显示无结果提示
     const visibleCount = document.querySelectorAll('.style-card:not(.hidden)').length;
     let noResults = document.querySelector('.no-results');
@@ -275,11 +301,73 @@
     }
   }
 
-  // ========== Lightbox ==========
-  function openLightbox(src) {
-    elements.lightboxImg.src = src;
+  function updateCounts() {
+    const total = document.querySelectorAll('.style-card').length;
+    const visible = document.querySelectorAll('.style-card:not(.hidden)').length;
+    
+    // 更新总计
+    const counter = document.querySelector('.result-count');
+    if (counter) {
+      counter.textContent = `${visible} / ${total}`;
+    }
+  }
+
+  // ========== Lightbox 信息卡片 ==========
+  function openLightbox(card) {
+    const data = extractCardData(card);
+    renderLightboxContent(data);
     elements.lightbox.classList.add('show');
     document.body.style.overflow = 'hidden';
+  }
+
+  function extractCardData(card) {
+    return {
+      imageUrl: card.querySelector('.card-image')?.src || '',
+      title: card.querySelector('.card-title')?.textContent || '',
+      summary: card.dataset.summary || '',
+      features: card.dataset.features?.split('|') || [],
+      tags: Array.from(card.querySelectorAll('.card-tag')).map(t => t.textContent.trim()),
+      link: card.querySelector('.card-link')?.href || '',
+      linkText: card.querySelector('.card-link')?.textContent || ''
+    };
+  }
+
+  function renderLightboxContent(data) {
+    const card = elements.lightboxCard;
+    
+    // 标题
+    card.querySelector('.lightbox-title').textContent = data.title;
+    
+    // 图片
+    const img = card.querySelector('.lightbox-image');
+    img.src = data.imageUrl;
+    img.alt = data.title;
+    
+    // 一句话理解
+    card.querySelector('.lightbox-summary').textContent = data.summary || '暂无描述';
+    
+    // 核心特点
+    const featuresList = card.querySelector('.lightbox-features');
+    if (data.features.length > 0) {
+      featuresList.innerHTML = data.features.map(f => `<li>${f}</li>`).join('');
+      featuresList.parentElement.style.display = 'block';
+    } else {
+      featuresList.parentElement.style.display = 'none';
+    }
+    
+    // 标签
+    const tagsContainer = card.querySelector('.lightbox-tags');
+    tagsContainer.innerHTML = data.tags.map(t => `<span class="lightbox-tag">${t}</span>`).join('');
+    
+    // 链接
+    const linkEl = card.querySelector('.lightbox-link');
+    if (data.link) {
+      linkEl.href = data.link;
+      linkEl.textContent = data.linkText || '🔗 查看原文';
+      linkEl.style.display = 'inline-flex';
+    } else {
+      linkEl.style.display = 'none';
+    }
   }
 
   function closeLightbox() {
