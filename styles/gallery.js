@@ -324,9 +324,11 @@
     return {
       imageUrl: card.querySelector('.card-image')?.src || '',
       title: card.querySelector('.card-title')?.textContent || '',
+      number: card.dataset.number || '',
       summary: card.dataset.summary || '',
-      features: card.dataset.features?.split('|') || [],
-      tags: Array.from(card.querySelectorAll('.card-tag')).map(t => t.textContent.trim()),
+      features: card.dataset.features?.split('|').filter(f => f) || [],
+      triggers: card.dataset.triggers || '',
+      tags: card.dataset.tags?.split(',').filter(t => t) || [],
       link: card.querySelector('.card-link')?.href || '',
       linkText: card.querySelector('.card-link')?.textContent || ''
     };
@@ -335,8 +337,9 @@
   function renderLightboxContent(data) {
     const card = elements.lightboxCard;
     
-    // 标题
-    card.querySelector('.lightbox-title').textContent = data.title;
+    // 标题行
+    card.querySelector('.lightbox-title').textContent = data.title.replace(/^#\d+\s*/, '');
+    card.querySelector('.lightbox-index').textContent = data.number ? `#${data.number}` : '';
     
     // 图片
     const img = card.querySelector('.lightbox-image');
@@ -344,29 +347,52 @@
     img.alt = data.title;
     
     // 一句话理解
-    card.querySelector('.lightbox-summary').textContent = data.summary || '暂无描述';
+    const summarySection = card.querySelector('.lightbox-summary-section');
+    if (data.summary) {
+      summarySection.querySelector('.lightbox-summary').textContent = data.summary;
+      summarySection.style.display = 'block';
+    } else {
+      summarySection.style.display = 'none';
+    }
+    
+    // 触发词
+    const triggersSection = card.querySelector('.lightbox-triggers-section');
+    if (data.triggers) {
+      triggersSection.querySelector('.lightbox-triggers').textContent = data.triggers;
+      triggersSection.style.display = 'block';
+    } else {
+      triggersSection.style.display = 'none';
+    }
     
     // 核心特点
-    const featuresList = card.querySelector('.lightbox-features');
+    const featuresSection = card.querySelector('.lightbox-features-section');
+    const featuresList = featuresSection.querySelector('.lightbox-features');
     if (data.features.length > 0) {
       featuresList.innerHTML = data.features.map(f => `<li>${f}</li>`).join('');
-      featuresList.parentElement.style.display = 'block';
+      featuresSection.style.display = 'block';
     } else {
-      featuresList.parentElement.style.display = 'none';
+      featuresSection.style.display = 'none';
     }
     
     // 标签
-    const tagsContainer = card.querySelector('.lightbox-tags');
-    tagsContainer.innerHTML = data.tags.map(t => `<span class="lightbox-tag">${t}</span>`).join('');
+    const tagsSection = card.querySelector('.lightbox-tags-section');
+    const tagsContainer = tagsSection.querySelector('.lightbox-tags');
+    if (data.tags.length > 0) {
+      tagsContainer.innerHTML = data.tags.map(t => `<span class="lightbox-tag">${t}</span>`).join('');
+      tagsSection.style.display = 'block';
+    } else {
+      tagsSection.style.display = 'none';
+    }
     
     // 链接
-    const linkEl = card.querySelector('.lightbox-link');
+    const linkSection = card.querySelector('.lightbox-link-section');
+    const linkEl = linkSection.querySelector('.lightbox-link');
     if (data.link) {
       linkEl.href = data.link;
       linkEl.textContent = data.linkText || '🔗 查看原文';
-      linkEl.style.display = 'inline-flex';
+      linkSection.style.display = 'block';
     } else {
-      linkEl.style.display = 'none';
+      linkSection.style.display = 'none';
     }
   }
 
