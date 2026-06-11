@@ -1,5 +1,5 @@
 /**
- * Gallery 功能脚本 v2
+ * Gallery 功能脚本 v3
  * 包含：搜索过滤、标签筛选、收藏、Lightbox信息卡片、深色模式
  */
 
@@ -25,7 +25,6 @@
     bindEvents();
     extractTags();
     renderSidebarTags();
-    renderMobileTags();
   }
 
   function cacheElements() {
@@ -60,18 +59,21 @@
     }
   }
 
-  // ========== 标签提取 ==========
+  // ========== 标签提取 - 从 dataset 中提取 ==========
   function extractTags() {
     const tagsMap = { all: 0 };
     
     elements.styleCards.forEach(card => {
-      const cardTags = card.querySelectorAll('.card-tag');
-      cardTags.forEach(tag => {
-        const tagText = tag.textContent.trim();
-        if (!tagsMap[tagText]) {
-          tagsMap[tagText] = 0;
+      const tagsStr = card.dataset.tags || '';
+      const tags = tagsStr.split(',').filter(t => t.trim());
+      tags.forEach(tag => {
+        const tagText = tag.trim();
+        if (tagText) {
+          if (!tagsMap[tagText]) {
+            tagsMap[tagText] = 0;
+          }
+          tagsMap[tagText]++;
         }
-        tagsMap[tagText]++;
       });
     });
     
@@ -111,35 +113,6 @@
     });
   }
 
-  function renderMobileTags() {
-    // 移动端标签栏（如果存在）
-    const tagsBar = document.querySelector('.tags-bar');
-    if (!tagsBar) return;
-
-    const tags = Object.entries(window.galleryTags || {});
-    tags.sort((a, b) => b[1] - a[1]);
-
-    let html = `
-      <button class="tag-item ${state.currentTag === 'all' ? 'active' : ''}" data-tag="all">
-        全部 <span class="tag-count">${tags.reduce((sum, t) => sum + t[1], 0)}</span>
-      </button>
-    `;
-
-    tags.forEach(([tag, count]) => {
-      html += `
-        <button class="tag-item ${state.currentTag === tag ? 'active' : ''}" data-tag="${tag}">
-          #${tag} <span class="tag-count">${count}</span>
-        </button>
-      `;
-    });
-
-    tagsBar.innerHTML = html;
-    
-    tagsBar.querySelectorAll('.tag-item').forEach(btn => {
-      btn.addEventListener('click', handleTagClick);
-    });
-  }
-
   // ========== 事件处理 ==========
   function bindEvents() {
     // 搜索
@@ -163,6 +136,12 @@
       if (img) {
         img.addEventListener('click', () => openLightbox(card));
       }
+      // 点击整个卡片也能打开详情
+      card.addEventListener('click', (e) => {
+        if (!e.target.closest('.favorite-btn') && !e.target.closest('.card-link')) {
+          openLightbox(card);
+        }
+      });
     });
 
     // Lightbox 关闭
@@ -251,13 +230,14 @@
     elements.styleCards.forEach(card => {
       const cardId = card.dataset.id;
       const title = card.querySelector('.card-title')?.textContent.toLowerCase() || '';
-      const cardTags = Array.from(card.querySelectorAll('.card-tag')).map(t => t.textContent.trim());
-      const triggers = card.querySelector('.card-triggers')?.textContent.toLowerCase() || '';
+      const tagsStr = card.dataset.tags || '';
+      const triggers = card.dataset.triggers?.toLowerCase() || '';
       
       let visible = true;
 
       // 标签筛选
       if (state.currentTag !== 'all') {
+        const cardTags = tagsStr.split(',').map(t => t.trim());
         visible = visible && cardTags.includes(state.currentTag);
       }
 
@@ -265,7 +245,7 @@
       if (state.searchQuery) {
         visible = visible && (
           title.includes(state.searchQuery) ||
-          cardTags.some(tag => tag.toLowerCase().includes(state.searchQuery)) ||
+          tagsStr.toLowerCase().includes(state.searchQuery) ||
           triggers.includes(state.searchQuery)
         );
       }
@@ -279,13 +259,17 @@
     });
 
     // 更新计数
-    updateCounts();
+    const total = document.querySelectorAll('.style-card').length;
+    const visible = document.querySelectorAll('.style-card:not(.hidden)').length;
+    const counter = document.querySelector('.count-num');
+    if (counter) {
+      counter.textContent = visible;
+    }
     
     // 显示无结果提示
-    const visibleCount = document.querySelectorAll('.style-card:not(.hidden)').length;
     let noResults = document.querySelector('.no-results');
     
-    if (visibleCount === 0) {
+    if (visible === 0) {
       if (!noResults) {
         noResults = document.createElement('div');
         noResults.className = 'no-results';
@@ -301,18 +285,7 @@
     }
   }
 
-  function updateCounts() {
-    const total = document.querySelectorAll('.style-card').length;
-    const visible = document.querySelectorAll('.style-card:not(.hidden)').length;
-    
-    // 更新总计
-    const counter = document.querySelector('.result-count');
-    if (counter) {
-      counter.textContent = `${visible} / ${total}`;
-    }
-  }
-
-  // ========== Lightbox 信息卡片 ==========
+  // ========== Lightbox 信息卡片 - 左图右文 ==========
   function openLightbox(card) {
     const data = extractCardData(card);
     renderLightboxContent(data);
@@ -337,8 +310,8 @@
   function renderLightboxContent(data) {
     const card = elements.lightboxCard;
     
-    // 标题行
-    card.querySelector('.lightbox-title').textContent = data.title.replace(/^#\d+\s*/, '');
+    // 标题（不含编号）
+    card.querySelector('.lightbox-title').textContent = data.title;
     card.querySelector('.lightbox-index').textContent = data.number ? `#${data.number}` : '';
     
     // 图片
