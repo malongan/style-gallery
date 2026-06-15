@@ -9,6 +9,7 @@
   // ========== 状态管理 ==========
   const state = {
     currentTag: 'all',
+    currentCategory: 'all',
     searchQuery: '',
     showFavoritesOnly: false,
     favorites: JSON.parse(localStorage.getItem('galleryFavorites') || '[]'),
@@ -24,7 +25,9 @@
     loadTheme();
     bindEvents();
     extractTags();
+    extractCategories();
     renderSidebarTags();
+    renderCategoryFilters();
   }
 
   function cacheElements() {
@@ -78,6 +81,84 @@
     });
     
     window.galleryTags = tagsMap;
+  }
+
+  // ========== 分类提取 ==========
+  function extractCategories() {
+    const categoriesMap = { all: 0 };
+    
+    elements.styleCards.forEach(card => {
+      const category = card.dataset.category || 'root';
+      if (!categoriesMap[category]) {
+        categoriesMap[category] = 0;
+      }
+      categoriesMap[category]++;
+    });
+    
+    window.galleryCategories = categoriesMap;
+  }
+
+  // ========== 渲染分类按钮 ==========
+  function renderCategoryFilters() {
+    // 在 filter-bar 后添加分类筛选栏
+    const filterBar = document.querySelector('.filter-bar');
+    if (!filterBar) return;
+
+    const categories = Object.entries(window.galleryCategories || {});
+    categories.sort((a, b) => {
+      // 固定排序：all 优先，然后按数量
+      if (a[0] === 'all') return -1;
+      if (b[0] === 'all') return 1;
+      return b[1] - a[1];
+    });
+
+    // 分类显示名称映射
+    const categoryNames = {
+      'all': '📦 全部',
+      'social_media': '📱 社交媒体',
+      'brand_kv': '🎨 品牌视觉',
+      'e-commerce': '🛒 电商',
+      'science': '🔬 科研',
+      'print': '📚 印刷品',
+      'ip_character': '🎭 IP角色',
+      'travel': '✈️ 旅行',
+      'fashion': '👔 时尚',
+      'creative': '🎪 创意',
+      'vigo_cookbook': '📖 Cookbook',
+      'meigen': '⚠️ 待整理',
+      'root': '📁 未分类'
+    };
+
+    let html = '<div class="category-filter">';
+    categories.forEach(([cat, count]) => {
+      const name = categoryNames[cat] || cat;
+      const active = state.currentCategory === cat ? 'active' : '';
+      html += `<button class="category-btn ${active}" data-category="${cat}">${name} <span class="tag-count">${count}</span></button>`;
+    });
+    html += '</div>';
+
+    filterBar.insertAdjacentHTML('afterend', html);
+
+    // 绑定分类按钮事件
+    document.querySelectorAll('.category-btn').forEach(btn => {
+      btn.addEventListener('click', handleCategoryClick);
+    });
+  }
+
+  // ========== 分类筛选处理 ==========
+  function handleCategoryClick(e) {
+    const btn = e.currentTarget;
+    const category = btn.dataset.category;
+    
+    // 更新状态
+    state.currentCategory = category;
+    
+    // 更新按钮样式
+    document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // 重新过滤
+    filterCards();
   }
 
   function renderSidebarTags() {
@@ -232,8 +313,14 @@
       const title = card.querySelector('.card-title')?.textContent.toLowerCase() || '';
       const tagsStr = card.dataset.tags || '';
       const triggers = card.dataset.triggers?.toLowerCase() || '';
+      const category = card.dataset.category || '';
       
       let visible = true;
+
+      // 分类筛选
+      if (state.currentCategory !== 'all') {
+        visible = visible && category === state.currentCategory;
+      }
 
       // 标签筛选
       if (state.currentTag !== 'all') {
