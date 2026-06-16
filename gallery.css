@@ -97,6 +97,13 @@ body {
   border-radius: 4px;
 }
 
+.header-update {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
 .header-right {
   display: flex;
   align-items: center;
